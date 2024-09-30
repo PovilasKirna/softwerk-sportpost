@@ -22,7 +22,7 @@ const FormSchema = z.object({
     password: z.string().min(8, { message: 'Password must be at least 8 characters' }),
 });
 
-export function SignUpForm({ redirectTo }: { redirectTo?: string }) {
+function SignUpForm({ redirectTo }: { redirectTo?: string }) {
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
         defaultValues: {
