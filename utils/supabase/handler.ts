@@ -2,7 +2,6 @@ import { Database } from '@/lib/types/database.types';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-
 export async function supabaseRouteHandler() {
     const cookieStore = cookies();
 

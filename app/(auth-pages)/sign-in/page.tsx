@@ -1,43 +1,119 @@
-import { signInAction } from "@/app/actions";
-import { FormMessage, Message } from "@/components/form-message";
-import { SubmitButton } from "@/components/submit-button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
+'use client';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
-export default function Login({ searchParams }: { searchParams: Message }) {
-  return (
-    <form className="flex-1 flex flex-col min-w-64">
-      <h1 className="text-2xl font-medium">Sign in</h1>
-      <p className="text-sm text-foreground">
-        Don't have an account?{" "}
-        <Link className="text-foreground font-medium underline" href="/sign-up">
-          Sign up
-        </Link>
-      </p>
-      <div className="flex flex-col gap-2 [&>input]:mb-3 mt-8">
-        <Label htmlFor="email">Email</Label>
-        <Input name="email" placeholder="you@example.com" required />
-        <div className="flex justify-between items-center">
-          <Label htmlFor="password">Password</Label>
-          <Link
-            className="text-xs text-foreground underline"
-            href="/forgot-password"
-          >
-            Forgot Password?
-          </Link>
-        </div>
-        <Input
-          type="password"
-          name="password"
-          placeholder="Your password"
-          required
-        />
-        <SubmitButton pendingText="Signing In..." formAction={signInAction}>
-          Sign in
-        </SubmitButton>
-        <FormMessage message={searchParams} />
-      </div>
-    </form>
-  );
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+import Link from 'next/link';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { supabaseBrowser } from '@/utils/supabase/client';
+import { signInAction } from '@/app/actions';
+
+export default function Login() {
+    return <LoginForm />;
+}
+
+const FormSchema = z.object({
+    email: z.string().email({ message: 'Please enter a valid email address' }),
+    password: z.string().min(8, { message: 'Password must be at least 8 characters' }),
+});
+
+export function LoginForm({ redirectTo }: { redirectTo?: string }) {
+    const form = useForm<z.infer<typeof FormSchema>>({
+        resolver: zodResolver(FormSchema),
+        defaultValues: {
+            email: '',
+            password: '',
+        },
+    });
+
+    async function onSubmit(data: z.infer<typeof FormSchema>) {
+        const formData = new FormData();
+        formData.append('email', data.email);
+        formData.append('password', data.password);
+
+        await signInAction(formData);
+    }
+
+    // Sign-In with Google
+    const signInWithGoogle = async () => {
+        const supabase = supabaseBrowser();
+
+        await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: location.origin + '/auth/callback?next=' + encodeURIComponent(redirectTo || '/'),
+            },
+        });
+    };
+
+    return (
+        <Card className="mx-auto max-w-sm">
+            <CardHeader>
+                <CardTitle className="text-2xl">Login</CardTitle>
+                <CardDescription>Enter your email below to login to your account</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter your email address" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div className="grid gap-4">
+                            <FormField
+                                control={form.control}
+                                name="password"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <div className="grid gap-2">
+                                            <div className="flex items-center">
+                                                <FormLabel>Password</FormLabel>
+                                                <Link
+                                                    href="/forgot-password"
+                                                    className="ml-auto inline-block text-sm underline"
+                                                >
+                                                    Forgot your password?
+                                                </Link>
+                                            </div>
+                                        </div>
+                                        <FormControl>
+                                            <Input type="password" placeholder="Enter your password" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" className="w-full">
+                                Login
+                            </Button>
+
+                            <Button variant="outline" type="button" className="w-full" onClick={signInWithGoogle}>
+                                Login with Google
+                            </Button>
+                        </div>
+                        <div className="mt-4 text-center text-sm">
+                            Don&apos;t have an account?{' '}
+                            <Link href="/sign-up" className="underline">
+                                Sign up
+                            </Link>
+                        </div>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    );
 }

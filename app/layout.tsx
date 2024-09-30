@@ -1,12 +1,11 @@
-import DeployButton from '@/components/deploy-button';
-import { EnvVarWarning } from '@/components/env-var-warning';
 import HeaderAuth from '@/components/header-auth';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { hasEnvVars } from '@/utils/supabase/check-env-vars';
 import { GeistSans } from 'geist/font/sans';
 import { ThemeProvider } from 'next-themes';
-import Link from 'next/link';
 import './globals.css';
+import { Toaster } from 'sonner';
+import { AuthToast } from './auth-toast';
 
 const defaultUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
 
@@ -25,8 +24,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         <div className="flex w-full flex-1 flex-col items-center gap-20">
                             <nav className="flex h-16 w-full justify-center border-b border-b-foreground/10">
                                 <div className="flex w-full max-w-5xl items-center justify-between p-3 px-5 text-sm">
-                                    {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
+                                    <HeaderAuth />
                                     <ThemeSwitcher />
+                                    <Toaster richColors closeButton expand />
+                                    <AuthToast />
                                 </div>
                             </nav>
                             <div className="flex max-w-5xl flex-col gap-20 p-5">{children}</div>
