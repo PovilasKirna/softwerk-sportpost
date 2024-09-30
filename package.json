@@ -9,7 +9,7 @@
     "format": "prettier --write .",
     "mac:clean:dev": "rm -rf .next && rm -rf node_modules && rm -rf package-lock.json && npm i && npm run dev",
     "windows:clean:dev": "rmdir /s /q .next && rmdir /s /q node_modules && del package-lock.json && npm i && npm run dev",
-    "generate-types": "supabase gen types typescript --linked --schema notebridge > lib/types/database.types.ts",
+    "generate-types": "supabase gen types typescript --linked > lib/types/database.types.ts",
     "typescript-error-check": "tsc --noEmit --pretty",
     "test": "jest",
     "test:watch": "jest --watch"
