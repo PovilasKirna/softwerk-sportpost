@@ -2,8 +2,10 @@ import { signOutAction } from '@/app/actions';
 import { hasEnvVars } from '@/utils/supabase/check-env-vars';
 import Link from 'next/link';
 import { Badge } from './ui/badge';
-import { Button } from './ui/button';
+import { Button, buttonVariants } from './ui/button';
 import { supabaseServer } from '@/utils/supabase/server';
+import { ThemeSwitcher } from './theme-switcher';
+import Image from 'next/image';
 
 export default async function AuthButton() {
     const supabase = await supabaseServer();
@@ -46,7 +48,26 @@ export default async function AuthButton() {
         );
     }
     return user ? (
+        <div className='flex flex-row w-full justify-between'>
+            <Link href="/">
+        <img src={'/LOGO_FC.png'} className='w-auto h-8 self-center' alt={'Logo'}  />
+        </Link>
+
+        <div className="flex gap-2">
+            <Link href="/" className={buttonVariants({
+                variant: 'ghost',
+            })}>
+                Home
+            </Link>
+            <Link href="/protected" className={buttonVariants({
+                variant: 'ghost',
+            })}>
+                Protected
+            </Link>
+        </div>
+
         <div className="flex items-center gap-4">
+            <ThemeSwitcher />
             Hey, {user.email}!
             <form action={signOutAction}>
                 <Button type="submit" variant={'outline'}>
@@ -54,8 +75,9 @@ export default async function AuthButton() {
                 </Button>
             </form>
         </div>
+        </div>
     ) : (
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-row w-full justify-end">
             <Button asChild size="sm" variant={'outline'}>
                 <Link href="/sign-in">Sign in</Link>
             </Button>

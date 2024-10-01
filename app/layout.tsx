@@ -1,6 +1,5 @@
 import HeaderAuth from '@/components/header-auth';
 import { ThemeSwitcher } from '@/components/theme-switcher';
-import { hasEnvVars } from '@/utils/supabase/check-env-vars';
 import { GeistSans } from 'geist/font/sans';
 import { ThemeProvider } from 'next-themes';
 import './globals.css';
@@ -25,7 +24,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <nav className="flex h-16 w-full justify-center border-b border-b-foreground/10">
                                 <div className="flex w-full max-w-5xl items-center justify-between p-3 px-5 text-sm">
                                     <HeaderAuth />
-                                    <ThemeSwitcher />
                                     <Toaster richColors closeButton expand />
                                     <AuthToast />
                                 </div>
