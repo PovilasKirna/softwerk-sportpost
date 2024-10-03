@@ -1,7 +1,7 @@
 import HeaderAuth from '@/components/header-auth';
 import { GeistSans } from 'geist/font/sans';
 import './globals.css';
-import { AuthToast } from './auth-toast';
+import { AuthToast } from '@/components/auth-toast';
 import Providers from '@/components/providers';
 
 const defaultUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';

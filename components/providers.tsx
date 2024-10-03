@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from './ui/sonner';
 import { ThemeProvider } from 'next-themes';
 
