@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { supabaseBrowser } from '@/utils/supabase/client';
-import { signUpAction } from '@/app/actions';
+import { signUpAction } from '@/server/auth-actions';
 
 export default function SignUp() {
     return <SignUpForm />;
