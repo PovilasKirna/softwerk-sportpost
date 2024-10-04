@@ -36,9 +36,37 @@ export const updateSession = async (request: NextRequest) => {
         // https://supabase.com/docs/guides/auth/server-side/nextjs
         const user = await supabase.auth.getUser();
 
+        let subscribed = false;
+        if (user.data.user) {
+            const { data: account, error } = await supabase
+                .from('accounts')
+                .select('has_license')
+                .eq('id', user.data.user.id)
+                .single();
+
+            if (!error) {
+                subscribed = account?.has_license;
+            }
+        }
+
         // protected routes
         if (request.nextUrl.pathname.startsWith('/protected') && user.error) {
-            return NextResponse.redirect(new URL('/sign-in', request.url));
+            return NextResponse.redirect(new URL('/', request.url));
+        }
+
+        if (
+            (request.nextUrl.pathname.startsWith('/sign-in') || request.nextUrl.pathname.startsWith('/sign-up')) &&
+            !user.error
+        ) {
+            return NextResponse.redirect(new URL('/', request.url));
+        }
+
+        if (request.nextUrl.pathname.startsWith('/pricing') && user.error) {
+            return NextResponse.redirect(new URL('/', request.url));
+        }
+
+        if (request.nextUrl.pathname.startsWith('/dashboard') && !subscribed) {
+            return NextResponse.redirect(new URL('/', request.url));
         }
 
         return response;

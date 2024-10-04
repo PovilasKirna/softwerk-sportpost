@@ -40,24 +40,27 @@ export type Database = {
           email: string
           has_license: boolean
           id: string
-          name: string
+          name: string | null
           profile_picture_url: string | null
+          subscription_id: string | null
         }
         Insert: {
           created_at?: string
           email: string
           has_license?: boolean
           id?: string
-          name: string
+          name?: string | null
           profile_picture_url?: string | null
+          subscription_id?: string | null
         }
         Update: {
           created_at?: string
           email?: string
           has_license?: boolean
           id?: string
-          name?: string
+          name?: string | null
           profile_picture_url?: string | null
+          subscription_id?: string | null
         }
         Relationships: [
           {
@@ -66,6 +69,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["subscription_id"]
           },
         ]
       }
@@ -142,63 +152,6 @@ export type Database = {
           name?: string | null
         }
         Relationships: []
-      }
-      notes: {
-        Row: {
-          id: number
-          title: string
-        }
-        Insert: {
-          id?: never
-          title: string
-        }
-        Update: {
-          id?: never
-          title?: string
-        }
-        Relationships: []
-      }
-      orders: {
-        Row: {
-          amount: number | null
-          created: string | null
-          currency: string | null
-          customer_id: string | null
-          order_id: string
-          price_id: string | null
-        }
-        Insert: {
-          amount?: number | null
-          created?: string | null
-          currency?: string | null
-          customer_id?: string | null
-          order_id: string
-          price_id?: string | null
-        }
-        Update: {
-          amount?: number | null
-          created?: string | null
-          currency?: string | null
-          customer_id?: string | null
-          order_id?: string
-          price_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orders_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["customer_id"]
-          },
-          {
-            foreignKeyName: "orders_price_id_fkey"
-            columns: ["price_id"]
-            isOneToOne: false
-            referencedRelation: "prices"
-            referencedColumns: ["price_id"]
-          },
-        ]
       }
       prices: {
         Row: {
@@ -360,6 +313,10 @@ export type Database = {
           price_currency: string
           price_unit_amount: number
         }[]
+      }
+      get_products_with_prices: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
     }
     Enums: {

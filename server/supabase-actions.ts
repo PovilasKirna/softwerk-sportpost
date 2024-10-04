@@ -1,17 +1,75 @@
 'use server';
 
 import { Database } from '@/lib/types/database.types';
+import { supabaseAdmin } from '@/utils/supabase/admin';
 import { supabaseServer } from '@/utils/supabase/server';
 import { SupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
-export async function getPlansPrices(supabase: SupabaseClient<Database>) {
+export async function getUserAccount(supabase: SupabaseClient<Database>) {
     try {
-        const { data, error } = await supabase.rpc('get_all_plans_with_prices');
+        const session = await supabase.auth.getUser();
+        if (!session.data.user) {
+            throw new Error('No session data found');
+        }
+
+        const { data: user, error: user_error } = await supabase
+            .from('accounts')
+            .select('*')
+            .eq('id', session.data.user.id)
+            .single();
+
+        if (user_error) {
+            throw new Error(JSON.stringify(user_error));
+        }
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+        return { data: user, error: null };
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        return {
+            data: null,
+            error: 'Error fetching user',
+        };
+    }
+}
+
+type Price = {
+    price_id: string;
+    active: boolean | null;
+    currency: string | null;
+    unit_amount: number | null;
+    created: string | null; // Assuming timestamps are returned as ISO strings
+    attrs: Record<string, any> | null;
+    type: string | null;
+    recurring_interval: string | null;
+    recurring_interval_count: number | null;
+};
+
+export type Product = {
+    product_id: string;
+    name: string | null;
+    active: boolean | null;
+    description: string | null;
+    created: string | null; // Assuming timestamps are returned as ISO strings
+    updated: string | null; // Assuming timestamps are returned as ISO strings
+    attrs: Record<string, any> | null;
+    prices: Price[] | null;
+};
+
+type GetProductsWithPricesResponse = Product[];
+
+export async function getPlansPrices(
+    supabase: SupabaseClient<Database>,
+): Promise<{ data: GetProductsWithPricesResponse | null; error: string | null }> {
+    try {
+        const { data, error } = await supabase.rpc('get_products_with_prices');
         if (error) {
             throw new Error(JSON.stringify(error));
         }
-        return { data, error: null };
+        return { data: data as GetProductsWithPricesResponse, error: null };
     } catch (error) {
         console.error('Error fetching plans:', error);
         return {
@@ -21,25 +79,26 @@ export async function getPlansPrices(supabase: SupabaseClient<Database>) {
     }
 }
 
-export async function upsertCustomer() {
+export async function upsertCustomer(customer_id: string) {
     try {
-        const supabase = await supabaseServer();
+        const supabase = await supabaseAdmin();
 
-        const { data } = await supabase.auth.getUser();
-        if (!data.user) {
-            throw new Error('No session data found');
+        const { data, error } = await supabase.from('accounts').select('*').eq('id', customer_id).single();
+
+        if (error) {
+            throw new Error(JSON.stringify(error));
         }
 
         const customer = {
-            customer_id: data.user.id,
-            email: data.user.email,
-            name: data.user.user_metadata.full_name || data.user.user_metadata.name || data.user.email,
+            customer_id: customer_id,
+            email: data.email,
+            name: data.name || data.email,
             created: new Date().toISOString(),
         };
 
-        const { error } = await supabase.from('customers').upsert(customer);
+        const { error: customerError } = await supabase.from('customers').upsert(customer);
 
-        if (error) {
+        if (customerError) {
             throw new Error(JSON.stringify(error));
         }
 
@@ -154,11 +213,12 @@ export async function deleteProduct(product: Stripe.Product, supabase: SupabaseC
 export async function manageSubscriptionStatusChange(
     subscription: Stripe.Subscription,
     supabase: SupabaseClient<Database>,
+    customer_id: string,
 ) {
     try {
         const { error } = await supabase.from('subscriptions').upsert({
             subscription_id: subscription.id,
-            customer_id: subscription.customer as string,
+            customer_id: customer_id as string,
             status: subscription.status,
             created: new Date().toISOString(),
             cancel_at: subscription.cancel_at ? new Date(subscription.cancel_at).toISOString() : null,
@@ -180,19 +240,8 @@ export async function manageSubscriptionStatusChange(
         if (subscription.status === 'active') {
             const { error } = await supabase
                 .from('accounts')
-                .update({ has_license: true })
-                .eq('id', subscription.customer as string);
-
-            if (error) {
-                throw new Error(JSON.stringify(error));
-            }
-        }
-
-        if (subscription.status === 'canceled') {
-            const { error } = await supabase
-                .from('accounts')
-                .update({ has_license: false })
-                .eq('id', subscription.customer as string);
+                .update({ subscription_id: subscription.id, has_license: true })
+                .eq('id', customer_id as string);
 
             if (error) {
                 throw new Error(JSON.stringify(error));

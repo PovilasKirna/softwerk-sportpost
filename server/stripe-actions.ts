@@ -1,46 +1,16 @@
 'use server';
 
 import { getStripeServerClient } from '@/utils/stripe/stripe-server-client';
-import { upsertCustomer } from './supabase-actions';
 import Stripe from 'stripe';
+import { getURL } from '@/utils/helpers';
 
 const stripeServerClient = getStripeServerClient();
 
-export async function createPaymentIntent(amount: number) {
-    try {
-        const { data, error } = await upsertCustomer();
-        if (error) {
-            return {
-                data: null,
-                error: 'Error upserting customer',
-            };
-        }
-
-        const customer = await getCustomer(stripeServerClient, data!.email!, data!.customer_id);
-
-        const paymentIntent = await stripeServerClient.paymentIntents.create({
-            amount: amount,
-            currency: 'eur',
-            automatic_payment_methods: { enabled: true },
-            customer: customer.id,
-        });
-
-        return {
-            data: {
-                clientSecret: paymentIntent.client_secret,
-            },
-            error: null,
-        };
-    } catch (error) {
-        console.error('Internal Error:', error);
-        return {
-            data: null,
-            error: 'Internal Error',
-        };
-    }
-}
-
-async function getCustomer(StripeClient: Stripe, customer_email: string, customer_id: string) {
+export async function getCustomer(
+    StripeClient: Stripe,
+    customer_email: string,
+    customer_id: string,
+): Promise<Stripe.Customer> {
     var customer: Stripe.Customer;
 
     try {
@@ -57,4 +27,36 @@ async function getCustomer(StripeClient: Stripe, customer_email: string, custome
     }
 
     return customer;
+}
+
+export async function createCheckoutSession(userId: string, email: string, priceId: string, subscription: boolean) {
+    try {
+        const session = await stripeServerClient.checkout.sessions.create({
+            payment_method_types: ['card', 'ideal'],
+            mode: subscription ? 'subscription' : 'payment',
+            line_items: [
+                {
+                    price: priceId,
+                    quantity: 1,
+                },
+            ],
+            customer: (await getCustomer(stripeServerClient, email, userId)).id,
+            client_reference_id: userId,
+            success_url: getURL() + '/payment-success',
+            cancel_url: getURL() + '/pricing?error=Payment+cancelled',
+        });
+
+        return {
+            data: {
+                sessionId: session.id,
+            },
+            error: null,
+        };
+    } catch (error) {
+        console.error('Internal Error:', error);
+        return {
+            data: null,
+            error: 'Internal Error',
+        };
+    }
 }

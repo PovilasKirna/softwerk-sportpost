@@ -1,13 +1,16 @@
+import { Database } from '@/lib/types/database.types';
 import {
     deletePrice,
     deleteProduct,
     fulfillOrder,
     manageSubscriptionStatusChange,
+    upsertCustomer,
     upsertPrice,
     upsertProduct,
 } from '@/server/supabase-actions';
 import { getStripeServerClient } from '@/utils/stripe/stripe-server-client';
 import { supabaseAdmin } from '@/utils/supabase/admin';
+import { SupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
 const relevantEvents = new Set([
@@ -22,6 +25,7 @@ const relevantEvents = new Set([
     'customer.subscription.updated',
     'customer.subscription.deleted',
     'charge.succeeded',
+    'customer.created',
 ]);
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -49,6 +53,14 @@ export async function POST(req: Request) {
     if (relevantEvents.has(event.type)) {
         try {
             switch (event.type) {
+                case 'customer.created':
+                    const new_customer_id = await getCustomerMetadataId(
+                        event.data.object.id as string,
+                        stripe,
+                        supabase,
+                    );
+                    await upsertCustomer(new_customer_id);
+                    break;
                 case 'product.created':
                 case 'product.updated':
                     await upsertProduct(event.data.object as Stripe.Product, supabase);
@@ -68,35 +80,33 @@ export async function POST(req: Request) {
                 case 'customer.subscription.updated':
                 case 'customer.subscription.deleted':
                     const subscription = event.data.object as Stripe.Subscription;
-                    await manageSubscriptionStatusChange(subscription, supabase);
+                    const subscription_customer_id = await getCustomerMetadataId(
+                        subscription.customer as string,
+                        stripe,
+                        supabase,
+                    );
+                    await manageSubscriptionStatusChange(subscription, supabase, subscription_customer_id);
                     break;
                 case 'checkout.session.completed':
                     const checkoutSession = event.data.object as Stripe.Checkout.Session;
+
                     if (checkoutSession.mode === 'subscription') {
                         const subscription = await stripe.subscriptions.retrieve(
                             checkoutSession.subscription as string,
                         );
-                        await manageSubscriptionStatusChange(subscription, supabase);
+                        const checkout_customer_id = await getCustomerMetadataId(
+                            subscription.customer as string,
+                            stripe,
+                            supabase,
+                        );
+                        await manageSubscriptionStatusChange(subscription, supabase, checkout_customer_id);
                     }
+                    break;
 
                 case 'charge.succeeded':
                     const charge = event.data.object as Stripe.Charge;
-
-                    const customer = await stripe.customers.retrieve(charge.customer as string);
-
-                    if (customer.deleted) {
-                        throw new Error("Customer deleted from Stripe can't subscribe to the service.");
-                    }
-                    const email = customer.email;
-
-                    const { data: account } = await supabase.from('accounts').select('id').eq('email', email!).single();
-
-                    if (!account) {
-                        console.error('Account not found');
-                        throw new Error('Account not found');
-                    }
-                    await fulfillOrder(charge, supabase, account.id);
-
+                    const customer_id = await getCustomerMetadataId(charge.customer as string, stripe, supabase);
+                    await fulfillOrder(charge, supabase, customer_id);
                     break;
                 default:
                     throw new Error('❌ Unhandled relevant event!');
@@ -113,4 +123,22 @@ export async function POST(req: Request) {
         });
     }
     return new Response(JSON.stringify({ received: true }));
+}
+
+async function getCustomerMetadataId(customerid: string, stripe: Stripe, supabase: SupabaseClient<Database>) {
+    const customer = await stripe.customers.retrieve(customerid as string);
+
+    if (customer.deleted) {
+        throw new Error("Customer deleted from Stripe can't subscribe to the service.");
+    }
+    const email = customer.email as string;
+
+    const { data: account } = await supabase.from('accounts').select('id').eq('email', email).single();
+
+    if (!account) {
+        console.error('Account not found');
+        throw new Error('Account not found');
+    }
+
+    return account.id;
 }
