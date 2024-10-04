@@ -69,6 +69,14 @@ export default async function AuthButton() {
                 >
                     Protected
                 </Link>
+                <Link
+                    href="/pricing"
+                    className={buttonVariants({
+                        variant: 'ghost',
+                    })}
+                >
+                    Pricing
+                </Link>
             </div>
 
             <div className="flex items-center gap-4">

@@ -4,11 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import convertToSubCurrency from '@/utils/stripe/convertToSubCurrency';
 import { createPaymentIntent } from '@/server/stripe-actions';
-import { useMutation } from 'react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { getURL } from '@/utils/helpers';
-import { AlertDialogAction, AlertDialogCancel, AlertDialogFooter } from '@/components/ui/alert-dialog';
+import { AlertDialogCancel, AlertDialogFooter } from '@/components/ui/alert-dialog';
 import { LoaderCircle } from 'lucide-react';
+import { data } from 'autoprefixer';
 
 export default function CheckoutForm({ amount }: { amount: number }) {
     const stripe = useStripe();
@@ -23,7 +24,6 @@ export default function CheckoutForm({ amount }: { amount: number }) {
         mutate: server_createPaymentIntent,
     } = useMutation({
         mutationFn: createPaymentIntent,
-        mutationKey: 'createPaymentIntent',
     });
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

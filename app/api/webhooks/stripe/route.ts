@@ -1,4 +1,13 @@
+import {
+    deletePrice,
+    deleteProduct,
+    fulfillOrder,
+    manageSubscriptionStatusChange,
+    upsertPrice,
+    upsertProduct,
+} from '@/server/supabase-actions';
 import { getStripeServerClient } from '@/utils/stripe/stripe-server-client';
+import { supabaseAdmin } from '@/utils/supabase/admin';
 import Stripe from 'stripe';
 
 const relevantEvents = new Set([
@@ -25,6 +34,7 @@ export async function POST(req: Request) {
     const body = await req.text();
     const sig = req.headers.get('stripe-signature') as string;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SIGNING_SECRET;
+    const supabase = await supabaseAdmin();
     let event: Stripe.Event;
 
     try {
@@ -41,56 +51,52 @@ export async function POST(req: Request) {
             switch (event.type) {
                 case 'product.created':
                 case 'product.updated':
-                    // await upsertProductRecord(event.data.object as Stripe.Product);
-                    console.log('✅ Product created or updated', event.data.object);
+                    await upsertProduct(event.data.object as Stripe.Product, supabase);
                     break;
                 case 'price.created':
                 case 'price.updated':
-                    // await upsertPriceRecord(event.data.object as Stripe.Price);
-                    console.log('✅ Price created or updated', event.data.object);
+                    await new Promise((resolve) => setTimeout(resolve, 2000)); // wait for product to be created or updated
+                    await upsertPrice(event.data.object as Stripe.Price, supabase);
                     break;
                 case 'price.deleted':
-                    // await deletePriceRecord(event.data.object as Stripe.Price);
-
-                    console.log('✅ Price deleted', event.data.object);
+                    await deletePrice(event.data.object as Stripe.Price, supabase);
                     break;
                 case 'product.deleted':
-                    // await deleteProductRecord(event.data.object as Stripe.Product);
-                    console.log('✅ Product deleted', event.data.object);
+                    await deleteProduct(event.data.object as Stripe.Product, supabase);
                     break;
                 case 'customer.subscription.created':
                 case 'customer.subscription.updated':
                 case 'customer.subscription.deleted':
-                    // const subscription = event.data.object as Stripe.Subscription;
-                    // await manageSubscriptionStatusChange(
-                    //   subscription.id,
-                    //   subscription.customer as string,
-                    //   event.type === 'customer.subscription.created'
-                    // );
-                    console.log('✅ Subscription created, updated, or deleted', event.data.object);
+                    const subscription = event.data.object as Stripe.Subscription;
+                    await manageSubscriptionStatusChange(subscription, supabase);
                     break;
                 case 'checkout.session.completed':
-                    // const checkoutSession = event.data.object as Stripe.Checkout.Session;
-                    // if (checkoutSession.mode === 'subscription') {
-                    //   const subscriptionId = checkoutSession.subscription;
-                    //   await manageSubscriptionStatusChange(
-                    //     subscriptionId as string,
-                    //     checkoutSession.customer as string,
-                    //     true
-                    //   );
-                    // } else {
-                    //   console.log(
-                    //     `🔔  Checkout session completed for payment: ${checkoutSession.payment_intent}`
-                    //   );
-                    // }
-
-                    console.log('✅ Checkout session completed', event.data.object);
-                    break;
+                    const checkoutSession = event.data.object as Stripe.Checkout.Session;
+                    if (checkoutSession.mode === 'subscription') {
+                        const subscription = await stripe.subscriptions.retrieve(
+                            checkoutSession.subscription as string,
+                        );
+                        await manageSubscriptionStatusChange(subscription, supabase);
+                    }
 
                 case 'charge.succeeded':
-                    // const charge = event.data.object as Stripe.Charge;
-                    // await fulfillOrder(charge);
-                    console.log('✅ Charge succeeded', event.data.object);
+                    const charge = event.data.object as Stripe.Charge;
+
+                    const customer = await stripe.customers.retrieve(charge.customer as string);
+
+                    if (customer.deleted) {
+                        throw new Error("Customer deleted from Stripe can't subscribe to the service.");
+                    }
+                    const email = customer.email;
+
+                    const { data: account } = await supabase.from('accounts').select('id').eq('email', email!).single();
+
+                    if (!account) {
+                        console.error('Account not found');
+                        throw new Error('Account not found');
+                    }
+                    await fulfillOrder(charge, supabase, account.id);
+
                     break;
                 default:
                     throw new Error('❌ Unhandled relevant event!');
