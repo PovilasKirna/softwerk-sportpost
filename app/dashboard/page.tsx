@@ -11,8 +11,7 @@ export default async function Page() {
     const { data: subscription, error } = await supabase
         .from('subscriptions')
         .select('*')
-        .eq('customer_id', user.data.user.id)
-        .single();
+        .eq('customer_id', user.data.user.id);
 
     if (error) {
         console.error('Error fetching subscription:', error);
