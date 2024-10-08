@@ -21,7 +21,7 @@ const PricingHeader = ({ title, subtitle }: { title: string; subtitle: string })
             <h2 className="text-3xl font-bold">{title}</h2>
             <p className="pt-1 text-xl">{subtitle}</p>
             <br />
-            {!isLoading && data && data.message !== 'No subscription found' && (
+            {!isLoading && data && data.message !== 'Subscription not found!' && (
                 <div className="mb-4 flex flex-col gap-3 rounded-md bg-accent p-4 text-sm text-foreground">
                     <div className="flex items-center gap-2">
                         <InfoIcon size="16" strokeWidth={2} />
