@@ -42,7 +42,7 @@ export default function Page() {
                         <CardDescription>Create a new image</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Link className={buttonVariants({ variant: 'default' })} href="/dashboard/account">
+                        <Link className={buttonVariants({ variant: 'default' })} href="/dashboard/create">
                             Create Image <PlusIcon className="ml-2" />
                         </Link>
                     </CardContent>
