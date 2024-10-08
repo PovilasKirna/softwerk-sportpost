@@ -8,12 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { createCheckoutSession } from '@/server/stripe-actions';
 import { getStripe } from '@/utils/stripe/stripe-client';
 import { toast } from 'sonner';
-import Stripe from 'stripe';
-import { Database } from '@/lib/types/database.types';
+import { useRouter } from 'next/navigation';
 
 const stripePromise = getStripe();
 
 export function PricingCard({ product, user }: { product: Product; user: any }) {
+    const router = useRouter();
+    const loggedIn = user !== null;
+
     const [period] = useQueryState('interval', parseAsString.withDefault('month'));
     const isYearly = period === 'year';
 
@@ -34,6 +36,11 @@ export function PricingCard({ product, user }: { product: Product; user: any }) 
     const actionLabel = product.attrs?.action_label || 'Subscribe';
 
     const handleCheckout = async (price: any) => {
+        if (!loggedIn) {
+            router.push('/sign-in?next=/pricing');
+            return;
+        }
+
         try {
             const subscription = price.type === 'recurring';
 

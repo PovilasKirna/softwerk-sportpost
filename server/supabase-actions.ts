@@ -2,7 +2,6 @@
 
 import { Database } from '@/lib/types/database.types';
 import { supabaseAdmin } from '@/utils/supabase/admin';
-import { supabaseServer } from '@/utils/supabase/server';
 import { SupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 

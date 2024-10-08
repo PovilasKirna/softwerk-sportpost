@@ -61,12 +61,8 @@ export const updateSession = async (request: NextRequest) => {
             return NextResponse.redirect(new URL('/', request.url));
         }
 
-        if (request.nextUrl.pathname.startsWith('/pricing') && user.error) {
-            return NextResponse.redirect(new URL('/', request.url));
-        }
-
         if (request.nextUrl.pathname.startsWith('/dashboard') && !subscribed) {
-            return NextResponse.redirect(new URL('/', request.url));
+            return NextResponse.redirect(new URL('/sign-in?next=/dashboard', request.url));
         }
 
         return response;
