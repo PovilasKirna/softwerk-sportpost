@@ -245,6 +245,15 @@ export async function manageSubscriptionStatusChange(
             if (error) {
                 throw new Error(JSON.stringify(error));
             }
+        } else if (subscription.status === 'canceled' || subscription.status === 'incomplete_expired') {
+            const { error } = await supabase
+                .from('accounts')
+                .update({ subscription_id: subscription.id, has_license: false })
+                .eq('id', customer_id as string);
+
+            if (error) {
+                throw new Error(JSON.stringify(error));
+            }
         }
 
         return { data: subscription.id, error: null };

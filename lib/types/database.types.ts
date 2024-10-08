@@ -126,6 +126,56 @@ export type Database = {
           },
         ]
       }
+      cities: {
+        Row: {
+          endpoint: string | null
+          id: number
+          name: string
+        }
+        Insert: {
+          endpoint?: string | null
+          id?: number
+          name: string
+        }
+        Update: {
+          endpoint?: string | null
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      clubs: {
+        Row: {
+          city_id: number | null
+          endpoint: string | null
+          id: number
+          image_url: string | null
+          name: string
+        }
+        Insert: {
+          city_id?: number | null
+          endpoint?: string | null
+          id?: number
+          image_url?: string | null
+          name: string
+        }
+        Update: {
+          city_id?: number | null
+          endpoint?: string | null
+          id?: number
+          image_url?: string | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clubs_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           attrs: Json | null
@@ -301,6 +351,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_account_subscription_details: {
+        Args: {
+          account_uuid: string
+        }
+        Returns: {
+          account_id: string
+          account_email: string
+          account_has_license: boolean
+          subscription_id: string
+          subscription_status: string
+          price_id: string
+          price_currency: string
+          price_amount: number
+          product_id: string
+          product_name: string
+          message: string
+        }[]
+      }
       get_all_plans_with_prices: {
         Args: Record<PropertyKey, never>
         Returns: {

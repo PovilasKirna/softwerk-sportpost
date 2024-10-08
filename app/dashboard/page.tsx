@@ -1,39 +1,99 @@
-import { supabaseServer } from '@/utils/supabase/server';
-import { InfoIcon } from 'lucide-react';
+'use client';
 
-export default async function Page() {
-    const supabase = await supabaseServer();
-    const user = await supabase.auth.getUser();
-    if (!user.data.user) {
-        return null;
-    }
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-    const { data: subscription, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('customer_id', user.data.user.id);
+import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import useSubscriptionQuery, { AccountSubscriptionDetails } from '@/hooks/use-subscription-query';
+import { supabaseBrowser } from '@/utils/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import Typography from '@/components/ui/typography';
+import { cn } from '@/lib/utils';
+import { ChevronRightIcon, LibraryIcon, PlusIcon } from 'lucide-react';
 
-    if (error) {
-        console.error('Error fetching subscription:', error);
+export default function Page() {
+    const supabase = supabaseBrowser();
+    const { data, isLoading } = useQuery(useSubscriptionQuery(supabase));
+
+    return (
+        <div className="flex w-fit max-w-5xl flex-col gap-4">
+            <Typography variant="h1">Dashboard</Typography>
+            <Typography variant="h2">Quick Actions</Typography>
+            <div className="flex w-full flex-row flex-wrap gap-4">
+                <Card className="w-64">
+                    <CardHeader>
+                        <CardTitle className="flex flex-row items-center justify-between">
+                            Library <LibraryIcon className="ml-2" size={28} />
+                        </CardTitle>
+                        <CardDescription>View your image library</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Link className={buttonVariants({ variant: 'default' })} href="/dashboard/library">
+                            View Library <ChevronRightIcon className="ml-2 h-4 w-4" />
+                        </Link>
+                    </CardContent>
+                </Card>
+                <Card className="w-64">
+                    <CardHeader>
+                        <CardTitle className="flex flex-row items-center justify-between">
+                            New Image <PlusIcon className="ml-2" size={28} />
+                        </CardTitle>
+                        <CardDescription>Create a new image</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Link className={buttonVariants({ variant: 'default' })} href="/dashboard/account">
+                            Create Image <PlusIcon className="ml-2" />
+                        </Link>
+                    </CardContent>
+                </Card>
+                <SubscriptionCard loading={isLoading} data={data as AccountSubscriptionDetails} />
+            </div>
+            <div className="flex w-full flex-row flex-wrap gap-4">
+                <Typography variant="h2">Recent Images</Typography>
+                <Link className={cn(buttonVariants({ variant: 'ghost' }), 'w-fit')} href="/dashboard/library">
+                    View More <ChevronRightIcon className="ml-2 h-4 w-4" />
+                </Link>
+            </div>
+            <div className="flex w-full flex-row flex-wrap gap-4">
+                <Skeleton className="h-64 w-64" />
+                <Skeleton className="h-64 w-64" />
+                <Skeleton className="h-64 w-64" />
+                <Skeleton className="h-64 w-64" />
+                <Skeleton className="h-64 w-64" />
+                <Skeleton className="h-64 w-64" />
+            </div>
+        </div>
+    );
+}
+
+//TODO finish the card with the data
+function SubscriptionCard({ data, loading }: { data: AccountSubscriptionDetails; loading: boolean }) {
+    console.log(data);
+    if (loading) {
         return (
-            <>
-                <h1>Error fetching subscription</h1>
-                <p>There was an error fetching your subscription. Please try again later.</p>
-            </>
+            <Card className="w-64">
+                <CardHeader>
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="mt-4 h-10 w-1/2" />
+                </CardContent>
+            </Card>
         );
     }
 
     return (
-        <div className="flex w-full flex-1 flex-col gap-12">
-            <div className="flex w-full flex-col gap-4">
-                <div className="flex items-center gap-3 rounded-md bg-accent p-3 px-5 text-sm text-foreground">
-                    <InfoIcon size="16" strokeWidth={2} />
-                    This is the dashboard page. You can see it after you subscribe to a plan.
-                </div>
-                <pre>
-                    <code>{JSON.stringify(subscription, null, 2)}</code>
-                </pre>
-            </div>
-        </div>
+        <Card
+            className={`${data.subscription_status === 'active' ? 'border-green-500 bg-green-200' : 'border-red-500 bg-red-200'} w-64`}
+        >
+            <CardHeader>
+                <CardTitle>{data.product_name}</CardTitle>
+                <CardDescription>{data.subscription_status === 'active' ? 'Active' : 'Inactive'}</CardDescription>
+            </CardHeader>
+            <CardContent></CardContent>
+        </Card>
     );
 }

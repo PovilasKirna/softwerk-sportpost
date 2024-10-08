@@ -62,7 +62,7 @@ export const updateSession = async (request: NextRequest) => {
         }
 
         if (request.nextUrl.pathname.startsWith('/dashboard') && !subscribed) {
-            return NextResponse.redirect(new URL('/sign-in?next=/dashboard', request.url));
+            return NextResponse.redirect(new URL('/sign-in', request.url));
         }
 
         return response;
