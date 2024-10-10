@@ -1,4 +1,3 @@
-import HeaderAuth from '@/components/header-auth';
 import { GeistSans } from 'geist/font/sans';
 import './globals.css';
 import { AuthToast } from '@/components/auth-toast';
