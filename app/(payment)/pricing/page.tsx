@@ -10,6 +10,7 @@ import useUserQuery from '@/hooks/use-user-query';
 import PricingHeader from './components/pricing-header';
 
 export default async function PricingPage() {
+    // TODO: so since the data is not changing, we can use the server component to fetch the data and pass it to the client component no need to use the useQuery hook
     const supabaseClient = await supabaseServer();
     const queryClient = new QueryClient();
     await queryClient.prefetchQuery(usePricingQuery(supabaseClient));

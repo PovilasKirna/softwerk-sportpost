@@ -18,6 +18,9 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from './ui/skeleton';
+import { ThemeSwitcher } from './theme-switcher';
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 interface Item {
@@ -30,18 +33,11 @@ export function Header({ className }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const supabase = supabaseBrowser();
-    const [user, setUser] = useState<User | null>(null);
-
-    // Fetch user session on component mount
-    useEffect(() => {
-        const getSession = async () => {
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
-            setUser(user ?? null); // Set user if session exists, otherwise null
-        };
-        getSession();
-    }, []);
+    const queryClient = useQueryClient();
+    const { data, isLoading } = useQuery({
+        queryKey: ['user'],
+        queryFn: () => supabase.auth.getUser(),
+    });
 
     const items: Item[] = [
         { href: '/', title: 'Home' },
@@ -55,28 +51,33 @@ export function Header({ className }: SidebarProps) {
         </Link>
     );
 
-    const handleSignOut = async () => {
-        await supabase.auth.signOut();
-        setUser(null);
-        router.refresh();
-    };
+    const { mutate: handleSignOut } = useMutation({
+        mutationFn: async () => await supabase.auth.signOut(),
+        onSuccess: () => {
+            router.refresh();
+            queryClient.invalidateQueries({ queryKey: ['user'] });
+        },
+    });
 
     const getAuthButtons = () => {
-        if (user) {
+        if (isLoading) {
+            return <Skeleton className="h-9 w-9 rounded-full" />;
+        }
+
+        if (data?.data.user) {
+            const user = data.data.user;
+
             return (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Avatar className="h-9 w-9" style={{ cursor: 'pointer' }}>
-                            <AvatarImage src={user.user_metadata.avatar_url} alt="user avatar" />
+                        <Avatar className="h-9 w-9 cursor-pointer">
+                            <AvatarImage src={user.user_metadata.picture} alt="user avatar" />
                             <AvatarFallback>{user.user_metadata.full_name.charAt(0) || 'JP'}</AvatarFallback>
                             <span className="sr-only">Toggle user menu</span>
                         </Avatar>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        {/* <DropdownMenuItem>My Account</DropdownMenuItem>
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
-                        <DropdownMenuSeparator /> */}
-                        <DropdownMenuItem onClick={handleSignOut}>Logout</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleSignOut()}>Logout</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             );
@@ -125,10 +126,12 @@ export function Header({ className }: SidebarProps) {
                     <div className="md:flex-0 min-w-fit flex-1">{getLogo()}</div>
                     <div className="hidden w-full items-center md:flex">
                         <div className="flex flex-1 items-center gap-x-8">{getHeaderItems()}</div>
+                        <ThemeSwitcher />
                         {getAuthButtons()}
                     </div>
                     {/* Mobile */}
                     <div className="flex items-center gap-x-4 md:hidden">
+                        <ThemeSwitcher />
                         {getAuthButtons()}
                         <Drawer direction="right">
                             <DrawerTrigger asChild>

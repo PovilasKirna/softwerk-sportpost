@@ -69,7 +69,6 @@ export default function Page() {
 
 //TODO finish the card with the data
 function SubscriptionCard({ data, loading }: { data: AccountSubscriptionDetails; loading: boolean }) {
-    console.log(data);
     if (loading) {
         return (
             <Card className="w-64">
@@ -93,7 +92,6 @@ function SubscriptionCard({ data, loading }: { data: AccountSubscriptionDetails;
                 <CardTitle>{data.product_name}</CardTitle>
                 <CardDescription>{data.subscription_status === 'active' ? 'Active' : 'Inactive'}</CardDescription>
             </CardHeader>
-            <CardContent></CardContent>
         </Card>
     );
 }
